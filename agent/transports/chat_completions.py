@@ -748,6 +748,17 @@ class ChatCompletionsTransport(ProviderTransport):
                 if finish_reason in (None, "stop"):
                     finish_reason = "content_filter"
 
+        # LongCat without native function calling writes its calls into the body as text. Complete
+        # blocks naming a tool the caller offered become real calls; every block leaves the body.
+        if not tool_calls and isinstance(content, str) and "<longcat_tool_call>" in content:
+            from agent.longcat_tool_calls import parse_longcat_tool_calls, strip_longcat_tool_calls
+
+            parsed = parse_longcat_tool_calls(content, kwargs.get("valid_tool_names") or ())
+            if parsed:
+                tool_calls = [ToolCall(id=None, name=n, arguments=a) for n, a in parsed]
+                finish_reason = "tool_calls"
+            content = strip_longcat_tool_calls(content)
+
         return NormalizedResponse(
             content=content, tool_calls=tool_calls, finish_reason=finish_reason,
             # A profile-declared text carrier doubles as the readable reasoning (first declared wins).

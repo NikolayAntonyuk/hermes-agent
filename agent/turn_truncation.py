@@ -165,7 +165,9 @@ def normalize_response_for_agent(agent: Any, response: Any) -> Any:
         return agent._get_transport().normalize_response(
             response, strip_tool_prefix=agent._is_anthropic_oauth
         )
-    return agent._get_transport().normalize_response(response)
+    return agent._get_transport().normalize_response(
+        response, valid_tool_names=getattr(agent, "valid_tool_names", None)
+    )
 
 
 def partial_result(
